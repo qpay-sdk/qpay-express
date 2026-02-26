@@ -2,6 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@qpay-sdk/express)](https://www.npmjs.com/package/@qpay-sdk/express)
 [![CI](https://github.com/qpay-sdk/qpay-express/actions/workflows/ci.yml/badge.svg)](https://github.com/qpay-sdk/qpay-express/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 QPay V2 payment middleware for Express.
 
