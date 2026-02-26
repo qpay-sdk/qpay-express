@@ -1,5 +1,8 @@
 # @qpay-sdk/express
 
+[![npm](https://img.shields.io/npm/v/@qpay-sdk/express)](https://www.npmjs.com/package/@qpay-sdk/express)
+[![CI](https://github.com/qpay-sdk/qpay-express/actions/workflows/ci.yml/badge.svg)](https://github.com/qpay-sdk/qpay-express/actions)
+
 QPay V2 payment middleware for Express.
 
 ## Install
