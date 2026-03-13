@@ -1,6 +1,6 @@
 {
   "name": "@qpay-sdk/express",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "QPay V2 payment middleware for Express",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
