@@ -123,49 +123,45 @@ describe('createQPayRouter', () => {
     });
   });
 
-  describe('POST /qpay/webhook', () => {
-    it('should return 400 if invoice_id is missing', async () => {
+  describe('GET /qpay/webhook', () => {
+    it('should return 400 if qpay_payment_id is missing', async () => {
       const res = await request(app)
-        .post('/qpay/webhook')
-        .send({})
+        .get('/qpay/webhook')
         .expect(400);
 
-      expect(res.body).toEqual({ error: 'Missing invoice_id' });
+      expect(res.text).toBe('Missing qpay_payment_id');
     });
 
-    it('should process webhook with valid invoice_id', async () => {
+    it('should process webhook with valid qpay_payment_id', async () => {
       mockClient.checkPayment.mockResolvedValue({
         rows: [{ payment_id: 'PAY_1' }],
       });
 
       const res = await request(app)
-        .post('/qpay/webhook')
-        .send({ invoice_id: 'INV_123' })
+        .get('/qpay/webhook?qpay_payment_id=493622150113497')
         .expect(200);
 
-      expect(res.body).toEqual({ status: 'paid' });
+      expect(res.text).toBe('SUCCESS');
     });
 
-    it('should return unpaid status when no payments', async () => {
+    it('should return SUCCESS even when no payments', async () => {
       mockClient.checkPayment.mockResolvedValue({ rows: [] });
 
       const res = await request(app)
-        .post('/qpay/webhook')
-        .send({ invoice_id: 'INV_456' })
+        .get('/qpay/webhook?qpay_payment_id=493622150113498')
         .expect(200);
 
-      expect(res.body).toEqual({ status: 'unpaid' });
+      expect(res.text).toBe('SUCCESS');
     });
 
     it('should return 500 on webhook processing error', async () => {
       mockClient.checkPayment.mockRejectedValue(new Error('Server error'));
 
       const res = await request(app)
-        .post('/qpay/webhook')
-        .send({ invoice_id: 'INV_ERR' })
+        .get('/qpay/webhook?qpay_payment_id=493622150113499')
         .expect(500);
 
-      expect(res.body).toEqual({ error: 'Server error' });
+      expect(res.text).toBe('FAILED');
     });
   });
 
@@ -195,11 +191,10 @@ describe('createQPayRouter', () => {
       testApp.use('/qpay', freshRouter(config, { onPaymentReceived }));
 
       await request(testApp)
-        .post('/qpay/webhook')
-        .send({ invoice_id: 'INV_HOOK' })
+        .get('/qpay/webhook?qpay_payment_id=493622150113497')
         .expect(200);
 
-      expect(onPaymentReceived).toHaveBeenCalledWith('INV_HOOK', {
+      expect(onPaymentReceived).toHaveBeenCalledWith('493622150113497', {
         rows: [{ payment_id: 'PAY_1' }],
       });
     });

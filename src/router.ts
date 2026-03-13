@@ -31,7 +31,7 @@ export function createQPayRouter(
     }
   });
 
-  router.post('/webhook', qpayWebhook(webhookOptions));
+  router.get('/webhook', qpayWebhook(webhookOptions));
 
   return router;
 }

@@ -12,38 +12,38 @@ describe('qpayWebhook', () => {
 
   beforeEach(() => {
     req = {
-      body: {},
+      query: {},
       qpay: {
         checkPayment: jest.fn(),
       },
     };
     res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      send: jest.fn().mockReturnThis(),
     };
     next = jest.fn();
   });
 
-  it('should return 400 if invoice_id is missing', async () => {
-    req.body = {};
+  it('should return 400 if qpay_payment_id is missing', async () => {
+    req.query = {};
     const handler = qpayWebhook();
     await handler(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Missing invoice_id' });
+    expect(res.send).toHaveBeenCalledWith('Missing qpay_payment_id');
   });
 
-  it('should return 400 if body is undefined', async () => {
-    req.body = undefined;
+  it('should return 400 if query is undefined', async () => {
+    req.query = undefined;
     const handler = qpayWebhook();
     await handler(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Missing invoice_id' });
+    expect(res.send).toHaveBeenCalledWith('Missing qpay_payment_id');
   });
 
-  it('should return paid status when payment rows exist', async () => {
-    req.body = { invoice_id: 'INV_123' };
+  it('should return SUCCESS when payment rows exist', async () => {
+    req.query = { qpay_payment_id: '493622150113497' };
     req.qpay.checkPayment.mockResolvedValue({
       rows: [{ payment_id: 'PAY_1', amount: 1000 }],
     });
@@ -53,72 +53,77 @@ describe('qpayWebhook', () => {
 
     expect(req.qpay.checkPayment).toHaveBeenCalledWith({
       objectType: 'INVOICE',
-      objectId: 'INV_123',
+      objectId: '493622150113497',
     });
-    expect(res.json).toHaveBeenCalledWith({ status: 'paid' });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith('SUCCESS');
   });
 
-  it('should return unpaid status when no payment rows', async () => {
-    req.body = { invoice_id: 'INV_456' };
+  it('should return SUCCESS even when no payment rows', async () => {
+    req.query = { qpay_payment_id: '493622150113498' };
     req.qpay.checkPayment.mockResolvedValue({ rows: [] });
 
     const handler = qpayWebhook();
     await handler(req, res, next);
 
-    expect(res.json).toHaveBeenCalledWith({ status: 'unpaid' });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith('SUCCESS');
   });
 
-  it('should return unpaid when rows is null', async () => {
-    req.body = { invoice_id: 'INV_789' };
+  it('should return SUCCESS when rows is null', async () => {
+    req.query = { qpay_payment_id: '493622150113499' };
     req.qpay.checkPayment.mockResolvedValue({ rows: null });
 
     const handler = qpayWebhook();
     await handler(req, res, next);
 
-    expect(res.json).toHaveBeenCalledWith({ status: 'unpaid' });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith('SUCCESS');
   });
 
   it('should call onPaymentReceived callback when payment is confirmed', async () => {
     const onPaymentReceived = jest.fn();
-    req.body = { invoice_id: 'INV_123' };
+    req.query = { qpay_payment_id: '493622150113497' };
     const paymentResult = { rows: [{ payment_id: 'PAY_1' }] };
     req.qpay.checkPayment.mockResolvedValue(paymentResult);
 
     const handler = qpayWebhook({ onPaymentReceived });
     await handler(req, res, next);
 
-    expect(onPaymentReceived).toHaveBeenCalledWith('INV_123', paymentResult);
-    expect(res.json).toHaveBeenCalledWith({ status: 'paid' });
+    expect(onPaymentReceived).toHaveBeenCalledWith('493622150113497', paymentResult);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith('SUCCESS');
   });
 
   it('should call onPaymentFailed callback when payment not found', async () => {
     const onPaymentFailed = jest.fn();
-    req.body = { invoice_id: 'INV_456' };
+    req.query = { qpay_payment_id: '493622150113498' };
     req.qpay.checkPayment.mockResolvedValue({ rows: [] });
 
     const handler = qpayWebhook({ onPaymentFailed });
     await handler(req, res, next);
 
-    expect(onPaymentFailed).toHaveBeenCalledWith('INV_456', 'No payment found');
-    expect(res.json).toHaveBeenCalledWith({ status: 'unpaid' });
+    expect(onPaymentFailed).toHaveBeenCalledWith('493622150113498', 'No payment found');
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith('SUCCESS');
   });
 
-  it('should call onPaymentFailed and return 500 on error', async () => {
+  it('should call onPaymentFailed and return FAILED on error', async () => {
     const onPaymentFailed = jest.fn();
-    req.body = { invoice_id: 'INV_ERR' };
+    req.query = { qpay_payment_id: '493622150113500' };
     req.qpay.checkPayment.mockRejectedValue(new Error('API timeout'));
 
     const handler = qpayWebhook({ onPaymentFailed });
     await handler(req, res, next);
 
-    expect(onPaymentFailed).toHaveBeenCalledWith('INV_ERR', 'API timeout');
+    expect(onPaymentFailed).toHaveBeenCalledWith('493622150113500', 'API timeout');
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'API timeout' });
+    expect(res.send).toHaveBeenCalledWith('FAILED');
   });
 
   it('should handle async onPaymentReceived callback', async () => {
     const onPaymentReceived = jest.fn().mockResolvedValue(undefined);
-    req.body = { invoice_id: 'INV_ASYNC' };
+    req.query = { qpay_payment_id: '493622150113501' };
     req.qpay.checkPayment.mockResolvedValue({
       rows: [{ payment_id: 'PAY_ASYNC' }],
     });
@@ -127,11 +132,12 @@ describe('qpayWebhook', () => {
     await handler(req, res, next);
 
     expect(onPaymentReceived).toHaveBeenCalledTimes(1);
-    expect(res.json).toHaveBeenCalledWith({ status: 'paid' });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith('SUCCESS');
   });
 
   it('should work with empty options', async () => {
-    req.body = { invoice_id: 'INV_EMPTY' };
+    req.query = { qpay_payment_id: '493622150113502' };
     req.qpay.checkPayment.mockResolvedValue({
       rows: [{ payment_id: 'PAY_1' }],
     });
@@ -139,16 +145,18 @@ describe('qpayWebhook', () => {
     const handler = qpayWebhook({});
     await handler(req, res, next);
 
-    expect(res.json).toHaveBeenCalledWith({ status: 'paid' });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith('SUCCESS');
   });
 
   it('should handle checkPayment returning no rows property', async () => {
-    req.body = { invoice_id: 'INV_NOPROP' };
+    req.query = { qpay_payment_id: '493622150113503' };
     req.qpay.checkPayment.mockResolvedValue({});
 
     const handler = qpayWebhook();
     await handler(req, res, next);
 
-    expect(res.json).toHaveBeenCalledWith({ status: 'unpaid' });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith('SUCCESS');
   });
 });

@@ -6,6 +6,6 @@ export interface QPayRequest extends Request {
 }
 
 export interface QPayWebhookOptions {
-  onPaymentReceived?: (invoiceId: string, result: any) => void | Promise<void>;
-  onPaymentFailed?: (invoiceId: string, reason: string) => void | Promise<void>;
+  onPaymentReceived?: (paymentId: string, result: any) => void | Promise<void>;
+  onPaymentFailed?: (paymentId: string, reason: string) => void | Promise<void>;
 }
